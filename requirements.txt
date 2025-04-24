@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+google-generativeai
+python-dotenv
+psycopg2-binary
+pytest
+pytest-asyncio
+httpx
+pytest-cov 
