@@ -57,7 +57,7 @@ Interactive documentation:
 - **Model:** Google Gemini 1.5 Flash.
 - **Context Sources:** User profiles, product catalog, referral FAQs/rules, conversation history.
 - **Prompt Engineering:** Clearly defined persona ('Capper'), structured prompts with explicit context injection and fallback instructions.
-- **History Management:** Optimized "First 1 + Last 5" turns strategy.
+- **History Management:** Optimized "First 1 + Last 9" turns strategy (up to 10 total turns from conversation history).
 
 ### Testing
 
