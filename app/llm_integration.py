@@ -56,7 +56,7 @@ def generate_response(user_id: int, history: List[Message], user_message: str) -
             "politely state that you cannot assist with that specific request and suggest the user contact support@cartoncaps.com for further assistance."
         )
         # User-specific and general knowledge base context #
-        user_context = f"User Info:\n- Name: {user_info['name'] if user_info else 'N/A'}\n- Email: {user_info['email'] if user_info else 'N/A'}\n- Linked School: {user_info['school_name'] if user_info and user_info.get('school_name') else 'N/A'}\n"
+        user_context = f"User Info:\n- Name: {user_info['name'] if user_info else 'N/A'}\n- Linked School: {user_info['school_name'] if user_info and user_info.get('school_name') else 'N/A'}\n"
         product_context = "Available Products:\n" + ("\n".join([f"- {p['name']}: {p['description']} (${p['price']:.2f})" for p in products]) if products else "No products listed.")
         referral_context = "Referral Program Info:\nFAQs:\n" + ("\n".join([f" Q: {faq['question']}\n A: {faq['answer']}" for faq in faqs]) if faqs else "No FAQs available.") + "\nRules:\n" + ("\n".join([f"- {rule}" for rule in rules]) if rules else "No rules available.")
         relevant_knowledge = f"\n{user_context}\n\n{product_context}\n\n{referral_context}"
