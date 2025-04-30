@@ -396,7 +396,20 @@ async def delete_referral_rule(rule_id: int, session: AsyncSession = Depends(get
 
 @app.on_event("startup")
 async def startup_event():
-    logger.info("Testing database connection on startup...")
+    logger.info("Performing startup checks...")
+    
+    logger.info("Checking environment variables...")
+    required_env_vars = ["DATABASE_URL", "GOOGLE_API_KEY"]
+    missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+    
+    if missing_vars:
+        error_msg = f"Missing required environment variables: {', '.join(missing_vars)}"
+        logger.critical(error_msg)
+        raise ValueError(error_msg)
+    else:
+        logger.info("Required environment variables found.")
+
+    logger.info("Testing database connection...")
     from .database import test_connection
     if await test_connection():
         logger.info("Database connection verified.")
