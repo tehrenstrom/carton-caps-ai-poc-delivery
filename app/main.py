@@ -40,7 +40,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # CORS Middleware
 origins = [
-    "*", # Allow all origins for development, restrict in production
+    "*",
 ]
 
 app.add_middleware(
@@ -65,24 +65,20 @@ def handle_endpoint_errors(func):
     """Decorator to handle common endpoint errors like DB issues or validation"""
     async def wrapper(*args, **kwargs):
         try:
-            # Ensure session is passed if it's a dependency
             session = next((v for v in kwargs.values() if isinstance(v, AsyncSession)), None)
             if not session and 'session' in kwargs and isinstance(kwargs['session'], AsyncSession):
-                session = kwargs['session'] # Handle case where session might be passed positionally then keyword
+                session = kwargs['session']
 
-            # If the original function is async, await it
             if asyncio.iscoroutinefunction(func):
                 return await func(*args, **kwargs)
             else:
-                # This part might need review if sync functions need sessions
                 return func(*args, **kwargs)
         except HTTPException as http_exc:
             logger.warning(f"HTTP Exception in {func.__name__}: {http_exc.status_code} - {http_exc.detail}")
-            raise http_exc # Re-raise FastAPI's HTTP exceptions
+            raise http_exc
         except Exception as e:
             logger.error(f"Unexpected error in endpoint {func.__name__}: {e}")
             logger.error(traceback.format_exc())
-            # Rollback if session exists and an error occurred before yielding control back
             if session:
                 try:
                     await session.rollback() 
@@ -90,12 +86,9 @@ def handle_endpoint_errors(func):
                 except Exception as rollback_err:
                     logger.error(f"Failed to rollback session after error: {rollback_err}")
             raise HTTPException(status_code=500, detail="Internal Server Error")
-    # If decorating an async function, the wrapper should also be async
     if asyncio.iscoroutinefunction(func):
-        # Need to preserve signature for FastAPI dependency injection
         @wraps(func)
         async def async_wrapper(*args, **kwargs):
-            # Copied logic from above, ensuring await
             try:
                 session = next((v for v in kwargs.values() if isinstance(v, AsyncSession)), None)
                 if not session and 'session' in kwargs and isinstance(kwargs['session'], AsyncSession):
@@ -117,10 +110,8 @@ def handle_endpoint_errors(func):
                 raise HTTPException(status_code=500, detail="Internal Server Error")
         return async_wrapper
     else:
-        # Sync version (consider if needed or if all decorated endpoints become async)
         @wraps(func)
         def sync_wrapper(*args, **kwargs):
-            # Original sync wrapper logic 
             try:
                 return func(*args, **kwargs)
             except HTTPException as http_exc:
@@ -136,7 +127,6 @@ def handle_endpoint_errors(func):
 @app.get("/")
 async def read_index():
     """Serves the index.html file for the chat interface"""
-    # Check if static/index.html exists
     if not os.path.exists('static/index.html'):
         logger.error("static/index.html not found")
         raise HTTPException(status_code=404, detail="Frontend index file not found.")
@@ -188,7 +178,7 @@ async def get_user_info(user_id: int, session: AsyncSession = Depends(get_async_
 async def chat(
     request: Request, 
     chat_request: ChatRequest, 
-    session: AsyncSession = Depends(get_async_session) # Inject async session
+    session: AsyncSession = Depends(get_async_session)
 ) -> ChatResponse:
     """Primary chat endpoint (now async)"""
     logger.info(f"Received chat request for user_id: {chat_request.user_id}, conv_id: {chat_request.conversation_id}")
@@ -225,9 +215,7 @@ async def chat(
     history.append({"role": "user", "content": chat_request.message})
 
     logger.info(f"Generating LLM response for conv_id: {conversation_id}")
-    # Pass the user dictionary and fetched KB context
-    # Run the potentially blocking LLM call in a threadpool
-    from fastapi.concurrency import run_in_threadpool # Ensure import is available
+    from fastapi.concurrency import run_in_threadpool
     ai_response_text = await run_in_threadpool(
         llm_integration.generate_response,
         user_info=user,
@@ -237,8 +225,6 @@ async def chat(
         faqs=faqs,
         rules=rules
     )
-    # Note: llm_integration.generate_response itself might be blocking (API call).
-    # Running it in threadpool prevents blocking the main FastAPI event loop.
     
     logger.info(f"LLM response generated for conv_id: {conversation_id}. Length: {len(ai_response_text)}")
 
@@ -260,7 +246,7 @@ async def chat(
 @handle_endpoint_errors
 async def get_history(
     conversation_id: str, 
-    session: AsyncSession = Depends(get_async_session) # Inject async session
+    session: AsyncSession = Depends(get_async_session)
 ):
     """Retrieve the message history for a given conversation ID (now async)"""
     logger.info(f"Fetching history for conversation_id: {conversation_id}")
@@ -273,14 +259,14 @@ async def get_history(
 @handle_endpoint_errors
 async def get_products(limit: int = 100, session: AsyncSession = Depends(get_async_session)):
     """Get all products with optional limit (now async)"""
-    products = await crud.get_products(session, limit=limit) # Use async version
+    products = await crud.get_products(session, limit=limit)
     return products
 
 @app.get("/products/{product_id}", response_model=Product)
 @handle_endpoint_errors
 async def get_product(product_id: int, session: AsyncSession = Depends(get_async_session)):
     """Get a single product by ID (now async)"""
-    product = await crud.get_product_by_id(session, product_id) # Use async version
+    product = await crud.get_product_by_id(session, product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
@@ -289,7 +275,7 @@ async def get_product(product_id: int, session: AsyncSession = Depends(get_async
 @handle_endpoint_errors
 async def create_product(product: Product, session: AsyncSession = Depends(get_async_session)):
     """Creates a new product (now async)"""
-    created_product = await crud.create_product( # Use async version
+    created_product = await crud.create_product(
         session=session,
         name=product.name,
         description=product.description,
@@ -301,7 +287,7 @@ async def create_product(product: Product, session: AsyncSession = Depends(get_a
 @handle_endpoint_errors
 async def update_product(product_id: int, product: Product, session: AsyncSession = Depends(get_async_session)):
     """Updates an existing product (now async)"""
-    updated_product = await crud.update_product( # Use async version
+    updated_product = await crud.update_product(
         session=session,
         product_id=product_id,
         name=product.name,
@@ -316,7 +302,7 @@ async def update_product(product_id: int, product: Product, session: AsyncSessio
 @handle_endpoint_errors
 async def delete_product(product_id: int, session: AsyncSession = Depends(get_async_session)):
     """Deletes a product (now async)"""
-    success = await crud.delete_product(session, product_id) # Use async version
+    success = await crud.delete_product(session, product_id)
     if not success:
         raise HTTPException(status_code=404, detail="Product not found")
     return {"message": "Product deleted successfully"}
@@ -326,14 +312,14 @@ async def delete_product(product_id: int, session: AsyncSession = Depends(get_as
 @handle_endpoint_errors
 async def get_faqs(session: AsyncSession = Depends(get_async_session)):
     """Get all referral FAQs (now async)."""
-    faqs = await crud.get_referral_faqs(session) # Use async version
+    faqs = await crud.get_referral_faqs(session)
     return faqs
 
 @app.get("/faqs/{faq_id}", response_model=FAQ)
 @handle_endpoint_errors
 async def get_faq(faq_id: int, session: AsyncSession = Depends(get_async_session)):
     """Get a single FAQ by ID (now async)"""
-    faq = await crud.get_faq_by_id(session, faq_id) # Use async version
+    faq = await crud.get_faq_by_id(session, faq_id) 
     if not faq:
         raise HTTPException(status_code=404, detail="FAQ not found")
     return faq
@@ -342,7 +328,7 @@ async def get_faq(faq_id: int, session: AsyncSession = Depends(get_async_session
 @handle_endpoint_errors
 async def create_faq(faq: FAQ, session: AsyncSession = Depends(get_async_session)):
     """Create a new FAQ (now async)."""
-    created_faq_dict = await crud.create_faq( # Use async version
+    created_faq_dict = await crud.create_faq( 
         session=session,
         question=faq.question,
         answer=faq.answer
@@ -357,7 +343,7 @@ async def create_faq(faq: FAQ, session: AsyncSession = Depends(get_async_session
 @handle_endpoint_errors
 async def update_faq(faq_id: int, faq: FAQ, session: AsyncSession = Depends(get_async_session)):
     """Update an existing FAQ (now async)"""
-    updated_faq = await crud.update_faq( # Use async version
+    updated_faq = await crud.update_faq( 
         session=session,
         faq_id=faq_id,
         question=faq.question,
@@ -371,7 +357,7 @@ async def update_faq(faq_id: int, faq: FAQ, session: AsyncSession = Depends(get_
 @handle_endpoint_errors
 async def delete_faq(faq_id: int, session: AsyncSession = Depends(get_async_session)):
     """Delete a FAQ (now async)"""
-    success = await crud.delete_faq(session, faq_id) # Use async version
+    success = await crud.delete_faq(session, faq_id) 
     if not success:
         raise HTTPException(status_code=404, detail="FAQ not found")
     return {"message": "FAQ deleted successfully"}
@@ -380,21 +366,21 @@ async def delete_faq(faq_id: int, session: AsyncSession = Depends(get_async_sess
 @handle_endpoint_errors
 async def get_referral_rules(session: AsyncSession = Depends(get_async_session)):
     """Get all referral rules (now async)"""
-    rules = await crud.get_referral_rules(session) # Use async version
+    rules = await crud.get_referral_rules(session) 
     return [ReferralRule(rule=r) for r in rules]
 
 @app.post("/referral-rules", response_model=ReferralRule)
 @handle_endpoint_errors
 async def create_referral_rule(rule: ReferralRule, session: AsyncSession = Depends(get_async_session)):
     """Create a new referral rule (now async)"""
-    created_rule = await crud.create_referral_rule(session, rule.rule) # Use async version
+    created_rule = await crud.create_referral_rule(session, rule.rule)
     return ReferralRule(rule=created_rule)
 
 @app.put("/referral-rules/{rule_id}", response_model=ReferralRule)
 @handle_endpoint_errors
 async def update_referral_rule(rule_id: int, rule: ReferralRule, session: AsyncSession = Depends(get_async_session)):
     """Update an existing referral rule (now async)"""
-    updated_rule = await crud.update_referral_rule(session, rule_id=rule_id, rule=rule.rule) # Use async version
+    updated_rule = await crud.update_referral_rule(session, rule_id=rule_id, rule=rule.rule)
     if not updated_rule:
         raise HTTPException(status_code=404, detail="Rule not found")
     return ReferralRule(rule=updated_rule)
@@ -403,12 +389,11 @@ async def update_referral_rule(rule_id: int, rule: ReferralRule, session: AsyncS
 @handle_endpoint_errors
 async def delete_referral_rule(rule_id: int, session: AsyncSession = Depends(get_async_session)):
     """Delete a referral rule (now async)"""
-    success = await crud.delete_referral_rule(session, rule_id=rule_id) # Use async version
+    success = await crud.delete_referral_rule(session, rule_id=rule_id)
     if not success:
         raise HTTPException(status_code=404, detail="Rule not found")
     return {"message": "Rule deleted successfully"}
 
-# Optional: Add endpoint to test DB connection on startup
 @app.on_event("startup")
 async def startup_event():
     logger.info("Testing database connection on startup...")
@@ -417,11 +402,8 @@ async def startup_event():
         logger.info("Database connection verified.")
     else:
         logger.error("Database connection failed on startup. Check DATABASE_URL and connectivity.")
-        # Depending on requirements, you might want to exit or prevent startup
-        # raise RuntimeError("Database connection failed") 
 
 if __name__ == "__main__":
     import uvicorn
     logger.info("Starting Uvicorn server...")
-    # Consider adding reload=True for development, but remove for production
     uvicorn.run(app, host="0.0.0.0", port=8000)

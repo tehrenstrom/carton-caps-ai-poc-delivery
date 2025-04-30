@@ -14,25 +14,19 @@ if not DATABASE_URL:
     logger.critical("DATABASE_URL environment variable not set.")
     raise ValueError("DATABASE_URL environment variable not set.")
 
-# Parse the original URL to extract components and query parameters
 parsed_url = urlparse(DATABASE_URL)
 query_params = parse_qs(parsed_url.query)
 
-# Prepare connect_args for asyncpg
 connect_args = {}
-# Map URL query params to asyncpg connect_args if needed
-# Example: Handle sslmode specifically for asyncpg's 'ssl' parameter
+
 if 'sslmode' in query_params:
-    sslmode = query_params['sslmode'][0] # get first value
-    # asyncpg uses 'ssl' arg which can take True, False, 'prefer', 'require', 'allow', 'verify-ca', 'verify-full' or an SSLContext
-    # We'll pass the string directly if it's one of the recognized modes
+    sslmode = query_params['sslmode'][0] 
     if sslmode in ['prefer', 'require', 'allow', 'verify-ca', 'verify-full']:
         connect_args['ssl'] = sslmode
         logger.info(f"Parsed sslmode='{sslmode}' and adding to connect_args as ssl='{sslmode}'.")
     else:
         logger.warning(f"Unsupported sslmode '{sslmode}' found in DATABASE_URL query parameters.")
 
-# Adapt the scheme (postgresql+asyncpg://)
 adapted_scheme = 'postgresql+asyncpg'
 if parsed_url.scheme == 'postgres':
     logger.info("Adapting scheme from 'postgres' to 'postgresql+asyncpg'")
@@ -42,13 +36,11 @@ elif parsed_url.scheme != 'postgresql+asyncpg':
      logger.error(f"Unsupported database scheme: {parsed_url.scheme}")
      raise ValueError(f"DATABASE_URL scheme '{parsed_url.scheme}' is not compatible with asyncpg driver.")
 
-# Rebuild the URL *without* the query string, as parameters are in connect_args
 adapted_components = (adapted_scheme, parsed_url.netloc, parsed_url.path, '', '', '')
 adapted_db_url = urlunparse(adapted_components)
 logger.info(f"Adapted DATABASE_URL for engine: {adapted_db_url}")
 
 try:
-    # Pass parsed connect_args to the engine
     async_engine = create_async_engine(
         adapted_db_url, 
         connect_args=connect_args, 
@@ -56,7 +48,6 @@ try:
         pool_pre_ping=True
     )
     
-    # expire_on_commit=False prevents attributes from being expired after commit.
     AsyncSessionFactory = sessionmaker(
         bind=async_engine,
         class_=AsyncSession,
@@ -76,12 +67,11 @@ async def get_async_session() -> AsyncSession:
     except Exception as e:
         logger.error(f"Error during database session: {e}")
         await async_session.rollback()
-        raise # Re-raise the exception so FastAPI can handle it
+        raise 
     finally:
         await async_session.close()
         logger.debug("Async database session closed.")
 
-# Optional: Function to test connection on startup
 async def test_connection():
     async with AsyncSessionFactory() as session:
         try:
