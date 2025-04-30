@@ -6,4 +6,7 @@ psycopg2-binary
 pytest
 pytest-asyncio
 httpx
-pytest-cov 
+pytest-cov
+sqlalchemy>=2.0.0
+asyncpg
+greenlet 

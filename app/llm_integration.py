@@ -6,15 +6,18 @@ import logging
 import traceback
 
 from .conversation import Message
-from . import crud
+# Remove crud import, data will be passed in
+# from . import crud 
 
 logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-API_KEY = os.getenv("GOOGLE_API_KEY")
+# Assuming API_KEY is still intended to be GOOGLE_API_KEY based on previous context
+API_KEY = os.getenv("GOOGLE_API_KEY") 
 if not API_KEY:
-    logger.critical("GOOGLE_API_KEY environment variable not set.")
+    # Use specific variable name in log
+    logger.critical("GOOGLE_API_KEY environment variable not set.") 
     raise ValueError("GOOGLE_API_KEY environment variable not set.")
 
 try:
@@ -24,39 +27,48 @@ try:
 except Exception as e:
     logger.critical(f"Failed to configure Gemini API: {e}")
     logger.critical(traceback.format_exc())
+    model = None # Ensure model is None if config fails
 
 # Comments are expanded in this section to help with understanding the LLM path and decision
 # making process as this is a POC. See unit test "test_llm_integration"
 # for testing the these functions #
-def generate_response(user_id: int, history: List[Message], user_message: str) -> str:
+def generate_response(
+    user_info: Dict[str, Any], 
+    history: List[Message], 
+    user_message: str,
+    products: List[Dict[str, Any]],
+    faqs: List[Dict[str, Any]],
+    rules: List[str]
+) -> str:
     """Generates a response using the Gemini API based on context and history"""
-    logger.info(f"Starting generate_response for user_id: {user_id}")
+    logger.info(f"Starting generate_response for user_info: {user_info}")
 
     if not model:
         logger.error("Gemini model not initialized due to configuration error.")
         return "Error: AI Service not configured correctly."
 
     try:
-        # Fetch Dynamic Context from DB/Future dev should consider leveraging a vector/embedding DB or similarity search for this purpose at scale #
-        logger.info(f"Fetching DB context for user_id: {user_id}")
-        user_info = crud.get_user(user_id)
-        products = crud.get_products()
-        faqs = crud.get_referral_faqs()
-        rules = crud.get_referral_rules()
-        logger.info("DB context fetched.")
+        # Context data is now passed in as arguments
+        # logger.info(f"Fetching DB context for user_info: {user_info}")
+        # products = crud.get_products()
+        # faqs = crud.get_referral_faqs()
+        # rules = crud.get_referral_rules()
+        logger.info("Using pre-fetched context data.")
 
         # System prompt defines persona (Capper), goals, and constraints, including fallback instruction / Future dev should consider using a more dynamic system prompt that can be updated as the conversation progresses and more data becomes available to the LLM / Consider using langchain for agnostic provider prompt management for A/B testing and fallback #
+        user_name = user_info.get('name', 'Customer')
+        school_name = user_info.get('school_name', 'their school')
         system_prompt = (
-            "You are Capper, a friendly and helpful assistant for the Carton Caps app."
-            "Carton Caps helps users raise money for schools by buying products."
-            "Your main goals are to help users find products and understand the referral program."
-            "using ONLY the information provided in the 'Relevant Knowledge' section below."
-            "Be concise, mission driven, and conversational."
-            "If you cannot answer a question based on the provided Relevant Knowledge or your capabilities,"
-            "politely state that you cannot assist with that specific request and suggest the user contact support@cartoncaps.com for further assistance."
+            "You are Capper, an AI assistant for Carton Caps, a company selling novelty bottle caps."
+            "Your goal is to be helpful, friendly, and informative, focusing on product info,"
+            "the referral program, and general FAQs. You are currently assisting {user_name}"
+            "{f' who is associated with {school_name}' if school_name else ''}. Keep responses concise and relevant."
+            "If asked about topics outside your scope (products, referrals, FAQs), politely state you cannot help with that and offer"
+            "to assist with supported topics. Do not make up information."
+            "If you are unsure how to answer based on the provided history, say so."
         )
         # User-specific and general knowledge base context #
-        user_context = f"User Info:\n- Name: {user_info['name'] if user_info else 'N/A'}\n- Linked School: {user_info['school_name'] if user_info and user_info.get('school_name') else 'N/A'}\n"
+        user_context = f"User Info:\n- Name: {user_name}\n- Linked School: {school_name}"
         product_context = "Available Products:\n" + ("\n".join([f"- {p['name']}: {p['description']} (${p['price']:.2f})" for p in products]) if products else "No products listed.")
         referral_context = "Referral Program Info:\nFAQs:\n" + ("\n".join([f" Q: {faq['question']}\n A: {faq['answer']}" for faq in faqs]) if faqs else "No FAQs available.") + "\nRules:\n" + ("\n".join([f"- {rule}" for rule in rules]) if rules else "No rules available.")
         relevant_knowledge = f"\n{user_context}\n\n{product_context}\n\n{referral_context}"
@@ -99,7 +111,9 @@ def generate_response(user_id: int, history: List[Message], user_message: str) -
         # Call the Gemini API #
         logger.info("Starting Gemini API call")
         # Start chat with the prepared history #
-        chat = model.start_chat(history=gemini_history) 
+        chat_history_with_system = [{'role': 'user', 'parts': [system_prompt]}] + gemini_history
+        
+        chat = model.start_chat(history=chat_history_with_system) 
         # Send only the current user message for this turn #
         response = chat.send_message(user_message) 
         logger.info("Gemini API call finished")
@@ -115,6 +129,8 @@ def generate_response(user_id: int, history: List[Message], user_message: str) -
         return response_text
 
     except Exception as e:
-        logger.error(f"Error during generate_response for user_id {user_id}: {e}")
+        # Use user_info in logging if available
+        user_id_for_log = user_info.get('id', 'unknown') 
+        logger.error(f"Error during generate_response for user_id {user_id_for_log}: {e}")
         logger.error(traceback.format_exc())
         return "Sorry, I encountered an internal error while generating a response." 

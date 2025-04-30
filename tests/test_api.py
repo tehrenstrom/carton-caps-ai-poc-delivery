@@ -3,11 +3,14 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.models import ChatRequest, ChatResponse, Product, FAQ, ReferralRule
 from app.crud import get_user, get_products, get_referral_faqs, get_referral_rules, add_conversation_message
+from app import crud # Import the crud module itself
 from app.llm_integration import generate_response
 import os
 from dotenv import load_dotenv
 from unittest.mock import patch, MagicMock
 import time
+import asyncio
+import httpx # Import httpx for async client
 
 load_dotenv()
 
@@ -215,3 +218,80 @@ def test_create_referral_rule_endpoint():
     assert response.status_code == 200
     data = response.json()
     assert data["rule"] == rule_data["rule"]
+
+# --- New Async Test --- #
+
+# Use pytest.mark.asyncio for async tests
+@pytest.mark.asyncio 
+async def test_chat_endpoint_is_async():
+    """Tests if the /chat endpoint handles concurrent requests asynchronously."""
+    SLEEP_DURATION = 0.2  # seconds
+    NUM_REQUESTS = 3
+    
+    # We need to patch an async function that is awaited inside the endpoint
+    # Let's patch add_conversation_message which is awaited twice
+    original_add_message = crud.add_conversation_message
+    call_count = 0
+
+    async def mock_add_message_with_sleep(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        # Only sleep on the first call within each request (user message save)
+        # to simulate DB delay without excessive total sleep time
+        if call_count % 2 != 0: 
+             print(f"Mock add_message sleeping for {SLEEP_DURATION}s (call {call_count})")
+             await asyncio.sleep(SLEEP_DURATION)
+        else:
+             print(f"Mock add_message returning immediately (call {call_count})")
+        # We don't need the actual DB interaction for this test
+        # await original_add_message(*args, **kwargs) # Optionally call original
+        return 
+
+    # Use httpx.AsyncClient for making async requests to the app
+    # Pass the FastAPI app instance via ASGITransport
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as async_client:
+        # Patch all awaited calls within the endpoint flow for this test
+        with patch('app.crud.add_conversation_message', new=mock_add_message_with_sleep), \
+             patch('app.llm_integration.generate_response', return_value="Mock LLM Response"), \
+             patch('app.crud.get_user', return_value={'id': 1, 'name': 'Test User', 'school_name': 'Test School'}), \
+             patch('app.crud.get_conversation_history_db', return_value=[]), \
+             patch('app.crud.get_products', return_value=[{'id': 1, 'name': 'Mock Prod', 'description': 'Desc', 'price': 1.0}]), \
+             patch('app.crud.get_referral_faqs', return_value=[{'id': 1, 'question': 'Q', 'answer': 'A'}]), \
+             patch('app.crud.get_referral_rules', return_value=["Mock Rule 1"]):
+            
+            # Prepare concurrent requests
+            tasks = []
+            for i in range(NUM_REQUESTS):
+                payload = {
+                    "user_id": 1, # Assuming user 1 exists for testing
+                    "message": f"Concurrent test message {i+1}",
+                    "conversation_id": f"async-test-{int(time.time())}-{i}"
+                }
+                tasks.append(async_client.post("/chat", json=payload))
+            
+            # Measure time to run requests concurrently
+            start_time = time.monotonic()
+            print(f"\nStarting {NUM_REQUESTS} concurrent /chat requests...")
+            responses = await asyncio.gather(*tasks)
+            end_time = time.monotonic()
+            total_time = end_time - start_time
+            print(f"Finished concurrent requests in {total_time:.4f} seconds.")
+
+            # Check responses are successful
+            for i, response in enumerate(responses):
+                 assert response.status_code == 200, f"Request {i+1} failed: {response.text}"
+                 data = response.json()
+                 assert "response" in data
+                 assert "conversation_id" in data
+
+            # Assert that the total time is less than the serial execution time
+            # Serial time would be roughly NUM_REQUESTS * SLEEP_DURATION 
+            # Allow for some overhead, but it should be significantly less than serial.
+            # We sleep only on odd calls, so effectively NUM_REQUESTS sleeps total.
+            max_expected_serial_time = NUM_REQUESTS * SLEEP_DURATION
+            # Assert total time is less than 80% of serial time (adjust threshold as needed)
+            assert total_time < (max_expected_serial_time * 0.8), \
+                f"Total time ({total_time:.4f}s) was not significantly less than serial time (~{max_expected_serial_time:.4f}s). Endpoint might be blocking."
+            # Also assert it's at least slightly longer than one sleep, accounting for overhead
+            assert total_time > SLEEP_DURATION, \
+                f"Total time ({total_time:.4f}s) was unexpectedly short, check sleep logic."
