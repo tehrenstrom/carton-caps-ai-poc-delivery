@@ -72,6 +72,7 @@ The project includes a suite of automated tests using `pytest` to ensure functio
     -   They verify the full request/response cycle, including database interactions (CRUD operations) when a `DATABASE_URL` is configured in the environment.
     -   Includes tests for both happy paths and error handling (e.g., invalid user ID).
     -   One test (`test_chat_endpoint_real_db_and_llm`) specifically attempts a chat interaction that may involve a call to the actual LLM service if configured.
+    -   **Async Testing:** Includes a specialized test (`test_chat_endpoint_is_async`) that verifies the asynchronous behavior of the API, ensuring concurrent requests are handled efficiently without blocking.
 
 -   **LLM Integration Unit Tests (`tests/test_llm_integration.py`):**
     -   These are unit tests focused specifically on the `generate_response` function within `app/llm_integration.py`.
