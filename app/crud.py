@@ -31,20 +31,19 @@ async def add_conversation_message(
     """Stores a message to the Conversation_History table using async session"""
     query = text("""
         INSERT INTO Conversation_History (user_id, conversation_id, sender, message, timestamp) 
-        VALUES (:user_id, :conversation_id, :sender, :message, :timestamp)
+        VALUES (:user_id, :conversation_id, :sender, :message, NOW())
     """)
-    timestamp = datetime.now(timezone.utc)
     await session.execute(
         query, 
         {
             "user_id": user_id, 
             "conversation_id": conversation_id, 
             "sender": sender, 
-            "message": message, 
-            "timestamp": timestamp
+            "message": message 
         }
     )
- 
+    await session.commit()
+
 async def get_conversation_history_db(session: AsyncSession, conversation_id: str) -> List[Dict[str, Any]]:
     """Retrieves chronologically ALL messages for a given conversation ID using async session"""
     query = text("""

@@ -38,6 +38,9 @@ Carton Caps enables consumers to support schools through everyday purchases. Thi
   - Advanced context handling via KB injection and conversation history management.
   - CRUD endpoints for managing Products, FAQs, and Referral Rules.
   - Unit and integration tests (`pytest`).
+  - **Fully asynchronous API and database operations** (using SQLAlchemy async features).
+  - **Environment variable validation** with startup checks to catch missing configurations.
+  - **Enhanced LLM prompt security** to prevent prompt leakage and potential abuse.
 
 ## Technical Details
 
@@ -58,6 +61,7 @@ Interactive documentation:
 - **Context Sources:** User profiles, product catalog, referral FAQs/rules, conversation history.
 - **Prompt Engineering:** Clearly defined persona ('Capper'), structured prompts with explicit context injection and fallback instructions.
 - **History Management:** Optimized "First 1 + Last 9" turns strategy (up to 10 total turns from conversation history).
+- **Security:** Explicit instructions to prevent prompt leakage and manipulation attempts.
 
 ### Testing
 
@@ -161,7 +165,7 @@ erDiagram
 
 - Python 3.9+, FastAPI, PostgreSQL (Neon)
 - Google Gemini API (`gemini-1.5-flash`)
-- Uvicorn, Psycopg2, Pydantic
+- Uvicorn, SQLAlchemy (async), Psycopg2, asyncpg, Pydantic
 - HTML, CSS, JavaScript
 - Pytest
 
