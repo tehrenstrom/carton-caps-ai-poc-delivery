@@ -7,7 +7,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from app.llm_integration import generate_response
-from app.crud import get_user, get_products, get_referral_faqs, get_referral_rules
 import os
 from dotenv import load_dotenv
 
@@ -53,39 +52,41 @@ def test_generate_response_happy_path(mock_model, mock_user, mock_products, mock
     mock_chat.send_message.return_value = mock_response
     mock_model.start_chat.return_value = mock_chat
     
-    with patch('app.crud.get_user', return_value=mock_user), \
-         patch('app.crud.get_products', return_value=mock_products), \
-         patch('app.crud.get_referral_faqs', return_value=mock_faqs), \
-         patch('app.crud.get_referral_rules', return_value=mock_rules):
-        
-        user_id = 1
-        message = "Hello"
-        conversation_history = [
-            {"role": "user", "content": "Hi"},
-            {"role": "assistant", "content": "Hello!"}
-        ]
-        
-        response = generate_response(user_id, conversation_history, message)
-        
-
-        assert "Hi" in response or "Hello" in response
-        mock_model.start_chat.assert_called_once()
-        mock_chat.send_message.assert_called_once_with(message)
+    user_message = "Hello"
+    conversation_history = [
+        {"role": "user", "content": "Hi"},
+        {"role": "assistant", "content": "Hello!"}
+    ]
+    
+    # Pass the required parameters directly (products, faqs, rules)
+    response = generate_response(
+        user_info=mock_user,
+        history=conversation_history, 
+        user_message=user_message,
+        products=mock_products,
+        faqs=mock_faqs,
+        rules=mock_rules
+    )
+    
+    assert "Hi" in response or "Hello" in response
+    mock_model.start_chat.assert_called_once()
+    mock_chat.send_message.assert_called_once_with(user_message)
 
 def test_generate_response_error_handling(mock_model, mock_user, mock_products, mock_faqs, mock_rules):
     """Test error handling in response generation"""
-    mock_model = None
-    
-    with patch('app.crud.get_user', return_value=mock_user), \
-         patch('app.crud.get_products', return_value=mock_products), \
-         patch('app.crud.get_referral_faqs', return_value=mock_faqs), \
-         patch('app.crud.get_referral_rules', return_value=mock_rules), \
-         patch('app.llm_integration.model', mock_model):
-        
-        user_id = 1
-        message = "Hello"
+    # Override the mock_model fixture with None to simulate configuration failure
+    with patch('app.llm_integration.model', None):
+        user_message = "Hello"
         conversation_history = []
         
-        response = generate_response(user_id, conversation_history, message)
+        # Pass the required parameters directly (products, faqs, rules)
+        response = generate_response(
+            user_info=mock_user,
+            history=conversation_history, 
+            user_message=user_message,
+            products=mock_products,
+            faqs=mock_faqs,
+            rules=mock_rules
+        )
         
         assert "Error: AI Service not configured correctly" in response 
