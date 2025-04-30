@@ -40,7 +40,9 @@ Carton Caps enables consumers to support schools through everyday purchases. Thi
   - Unit and integration tests (`pytest`).
   - **Fully asynchronous API and database operations** (using SQLAlchemy async features).
   - **Environment variable validation** with startup checks to catch missing configurations.
+  - **Authentication stub** for JWT token verification (prepared for future implementation).
   - **Enhanced LLM prompt security** to prevent prompt leakage and potential abuse.
+  - **Comprehensive database error handling** with automatic transaction rollback and detailed error logging.
 
 ## Technical Details
 
