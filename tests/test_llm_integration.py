@@ -158,9 +158,9 @@ def test_generate_response_api_exception(mock_model, mock_user, mock_products, m
         rules=mock_rules
     )
     
-    # Verify response contains error message
-    assert "Sorry, I encountered an internal error" in response
-    mock_model.start_chat.assert_called_once()
+    # Verify response contains the new error message
+    assert "trouble generating a response" in response
+    assert "support@cartoncaps.com" in response
 
 def test_generate_response_empty_api_response(mock_model, mock_user, mock_products, mock_faqs, mock_rules):
     """Test handling of empty API response"""
@@ -299,3 +299,109 @@ def test_generate_response_includes_product_context(mock_model, mock_user, mock_
     # Also verify price information is included
     assert "$10.99" in first_message
     assert "$20.99" in first_message 
+
+def test_generate_response_token_limit_fallback(mock_model, mock_user, mock_products, mock_faqs, mock_rules):
+    """Test that appropriate fallback message is shown when token limit is approached"""
+    # Create a mock for count_tokens that returns very large token counts
+    with patch('app.llm_integration.count_tokens') as mock_count_tokens:
+        # Set up to return values that will exceed the token limit
+        mock_count_tokens.return_value = 20000  # Very high token count
+        
+        user_message = "Hello"
+        conversation_history = [
+            {"role": "user", "content": "Previous message"}
+        ]
+        
+        # Call function
+        response = generate_response(
+            user_info=mock_user,
+            history=conversation_history,
+            user_message=user_message,
+            products=mock_products,
+            faqs=mock_faqs,
+            rules=mock_rules
+        )
+        
+        # Should return token limit fallback message
+        assert "conversation has become too long" in response
+        assert "contact our support team" in response
+        assert "support@cartoncaps.com" in response
+        
+        # The LLM should not have been called
+        mock_model.start_chat.assert_not_called()
+
+def test_generate_response_value_error_fallback(mock_model, mock_user, mock_products, mock_faqs, mock_rules):
+    """Test that appropriate fallback message is shown when a ValueError is raised"""
+    # Set up mock to raise ValueError with token limit message
+    mock_model.start_chat.side_effect = ValueError("Token limit exceeded for the conversation")
+    
+    user_message = "Hello"
+    conversation_history = [
+        {"role": "user", "content": "Hi"},
+        {"role": "assistant", "content": "Hello!"}
+    ]
+    
+    # Call function
+    response = generate_response(
+        user_info=mock_user,
+        history=conversation_history,
+        user_message=user_message,
+        products=mock_products,
+        faqs=mock_faqs,
+        rules=mock_rules
+    )
+    
+    # Should return token limit fallback message
+    assert "conversation has become too long" in response
+    assert "contact our support team" in response
+    assert "support@cartoncaps.com" in response
+
+def test_generate_response_general_error_fallback(mock_model, mock_user, mock_products, mock_faqs, mock_rules):
+    """Test that appropriate fallback message is shown when a general error occurs"""
+    # Set up mock to raise a general error
+    mock_model.start_chat.side_effect = Exception("General API Error")
+    
+    user_message = "Hello"
+    conversation_history = [
+        {"role": "user", "content": "Hi"}
+    ]
+    
+    # Call function
+    response = generate_response(
+        user_info=mock_user,
+        history=conversation_history,
+        user_message=user_message,
+        products=mock_products,
+        faqs=mock_faqs,
+        rules=mock_rules
+    )
+    
+    # Should return general error fallback message
+    assert "trouble generating a response" in response
+    assert "try again in a moment" in response
+    assert "support@cartoncaps.com" in response
+
+def test_generate_response_empty_response_fallback(mock_model, mock_user, mock_products, mock_faqs, mock_rules):
+    """Test that appropriate fallback message is shown when an empty response is returned"""
+    mock_response = MagicMock()
+    mock_response.text = ""  # Empty response
+    mock_chat = MagicMock()
+    mock_chat.send_message.return_value = mock_response
+    mock_model.start_chat.return_value = mock_chat
+    
+    user_message = "Hello"
+    conversation_history = [{"role": "user", "content": "Hi"}]
+    
+    # Call function
+    response = generate_response(
+        user_info=mock_user,
+        history=conversation_history,
+        user_message=user_message,
+        products=mock_products,
+        faqs=mock_faqs,
+        rules=mock_rules
+    )
+    
+    # Should return empty response fallback message
+    assert "received an empty response" in response
+    assert "support@cartoncaps.com" in response 

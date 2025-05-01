@@ -65,6 +65,11 @@ Interactive documentation:
   - **Token-aware truncation:** Intelligently manages conversation history to stay within token limits.
   - **Prioritization strategy:** Always preserves the most recent messages when possible, filling remaining space with older messages.
   - **Automatic token accounting:** Reserves space for system prompt and new messages, ensuring optimal use of the context window.
+  - **Token limit detection:** Proactively identifies when conversations approach token limits and provides user-friendly fallback messages.
+- **Error Handling:**
+  - **Token limit fallbacks:** When conversations get too long, provides user guidance on starting a new conversation or contacting support.
+  - **LLM error resilience:** Gracefully handles API errors with informative messages that maintain a positive user experience.
+  - **Support contact:** All error messages include contact information for getting additional help.
 - **Security:** Explicit instructions to prevent prompt leakage and manipulation attempts.
 
 ### Testing
@@ -182,7 +187,26 @@ erDiagram
 - PostgreSQL database (Neon recommended)
 - Git
 
-### Installation
+### Automated Setup (Recommended)
+
+Use our automated setup script to quickly set up your development environment:
+
+```bash
+git clone <repo-url>
+cd <repo-directory>
+chmod +x setup.sh
+./setup.sh
+```
+
+The script will:
+- Create a Python virtual environment
+- Install dependencies
+- Create a .env file with sample values
+- Check PostgreSQL connection
+
+### Manual Installation
+
+If you prefer manual installation:
 
 ```bash
 git clone <repo-url>
@@ -201,6 +225,12 @@ GOOGLE_API_KEY=<gemini-api-key>
 
 ### Database Setup
 
+Option 1: Automatic setup with sample data (recommended for development):
+```bash
+python scripts/seed_database.py
+```
+
+Option 2: Manual schema setup:
 - Execute `schema.sql` against your PostgreSQL database.
 
 ### Run Service

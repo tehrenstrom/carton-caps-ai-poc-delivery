@@ -26,6 +26,12 @@ MAX_TOKEN_LIMIT = 30000  # Gemini 1.5 Flash context window
 TRUNCATION_TARGET = 25000  # Target to truncate to when we exceed the limit
 MODEL_NAME = 'gemini-1.5-flash'
 
+# Error messages
+TOKEN_LIMIT_ERROR_MSG = ("I apologize, but your conversation has become too long for me to process effectively. "
+                         "Please start a new conversation or contact our support team for assistance at support@cartoncaps.com.")
+GENERAL_ERROR_MSG = ("I'm having trouble generating a response right now. Please try again in a moment "
+                     "or contact our support team at support@cartoncaps.com if the problem persists.")
+
 # Initialize tokenizer for token counting
 # We'll use cl100k_base which is commonly used for recent models
 try:
@@ -163,7 +169,7 @@ def generate_response(
         # Context data is now passed in as arguments
         logger.info("Using pre-fetched context data.")
 
-        # System prompt defines persona (Capper), goals, and constraints, including fallback instruction
+        # System prompt defines persona (Capper), goals, and constraints, including fallback instruction and security instructions
         user_name = user_info.get('name', 'Customer')
         school_name = user_info.get('school_name', 'their school')
         system_prompt = (
@@ -200,8 +206,14 @@ def generate_response(
         
         # Log token usage statistics
         user_message_tokens = count_tokens(user_message)
+        total_tokens_with_message = total_tokens + user_message_tokens
         logger.info(f"Token usage: History: {total_tokens}, User message: {user_message_tokens}, " +
-                   f"Total: {total_tokens + user_message_tokens}/{MAX_TOKEN_LIMIT}")
+                   f"Total: {total_tokens_with_message}/{MAX_TOKEN_LIMIT}")
+        
+        # Check if we're approaching token limit
+        if total_tokens_with_message > MAX_TOKEN_LIMIT - 1000:  # Leave some buffer for the response
+            logger.warning(f"Token limit nearly exceeded: {total_tokens_with_message}/{MAX_TOKEN_LIMIT}")
+            return TOKEN_LIMIT_ERROR_MSG
                     
         # Convert to Gemini API format
         gemini_history = []
@@ -247,14 +259,25 @@ def generate_response(
 
         if not response_text:
             logger.warning("Gemini API returned empty response text.")
-            return "Sorry, I received an empty response from the AI. Please try again."
+            return "Sorry, I received an empty response from the AI. Please try again or contact our support team at support@cartoncaps.com if the problem persists."
 
         logger.info(f"Successfully generated response. Length: {len(response_text)}")
         return response_text
 
+    except ValueError as ve:
+        # Handling specifically for token limit errors in the Google Gemini API
+        error_str = str(ve)
+        user_id_for_log = user_info.get('id', 'unknown') 
+        if "token" in error_str.lower() and "limit" in error_str.lower():
+            logger.error(f"Token limit exceeded for user_id {user_id_for_log}: {ve}")
+            return TOKEN_LIMIT_ERROR_MSG
+        else:
+            logger.error(f"Value error during generate_response for user_id {user_id_for_log}: {ve}")
+            return GENERAL_ERROR_MSG
+            
     except Exception as e:
         # Use user_info in logging if available
         user_id_for_log = user_info.get('id', 'unknown') 
         logger.error(f"Error during generate_response for user_id {user_id_for_log}: {e}")
         logger.error(traceback.format_exc())
-        return "Sorry, I encountered an internal error while generating a response." 
+        return GENERAL_ERROR_MSG 
