@@ -61,7 +61,10 @@ Interactive documentation:
 - **Model:** Google Gemini 1.5 Flash.
 - **Context Sources:** User profiles, product catalog, referral FAQs/rules, conversation history.
 - **Prompt Engineering:** Clearly defined persona ('Capper'), structured prompts with explicit context injection and fallback instructions.
-- **History Management:** Optimized "First 1 + Last 9" turns strategy (up to 10 total turns from conversation history).
+- **History Management:** 
+  - **Token-aware truncation:** Intelligently manages conversation history to stay within token limits.
+  - **Prioritization strategy:** Always preserves the most recent messages when possible, filling remaining space with older messages.
+  - **Automatic token accounting:** Reserves space for system prompt and new messages, ensuring optimal use of the context window.
 - **Security:** Explicit instructions to prevent prompt leakage and manipulation attempts.
 
 ### Testing

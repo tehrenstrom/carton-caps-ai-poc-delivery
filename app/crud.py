@@ -29,7 +29,6 @@ async def handle_db_error(session: AsyncSession, error: Exception, operation: st
         logger.error(f"Database error during {operation}: {str(error)}")
         logger.error(f"Transaction rolled back")
         
-        # Provide more context based on error type
         if isinstance(error, SQLAlchemyError):
             logger.error(f"SQLAlchemy error: {error.__class__.__name__}")
         elif isinstance(error, DBAPIError):
@@ -38,7 +37,6 @@ async def handle_db_error(session: AsyncSession, error: Exception, operation: st
     except Exception as rollback_error:
         logger.critical(f"Failed to rollback after database error: {str(rollback_error)}")
     
-    # Re-raise as custom exception
     raise DatabaseError(f"Database error during {operation}", error)
 
 # --- Refactored Async Functions --- 

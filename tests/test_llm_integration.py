@@ -6,7 +6,7 @@
 
 import pytest
 from unittest.mock import patch, MagicMock
-from app.llm_integration import generate_response
+from app.llm_integration import generate_response, truncate_history_by_tokens
 import os
 from dotenv import load_dotenv
 
@@ -92,38 +92,50 @@ def test_generate_response_error_handling(mock_user, mock_products, mock_faqs, m
         assert "Error: AI Service not configured correctly" in response
 
 def test_generate_response_with_excessive_history(mock_model, mock_user, mock_products, mock_faqs, mock_rules):
-    """Test handling of excessive conversation history"""
+    """Test handling of excessive conversation history using token-aware truncation"""
     mock_response = MagicMock()
     mock_response.text = "Processed truncated history"
     mock_chat = MagicMock()
     mock_chat.send_message.return_value = mock_response
     mock_model.start_chat.return_value = mock_chat
     
-    # Create conversation history longer than MAX_HISTORY_TURNS
+    # Create a long conversation history
     long_history = []
-    for i in range(15):  # MAX_HISTORY_TURNS is 10
+    for i in range(20):  # Create 20 messages
         role = "user" if i % 2 == 0 else "assistant"
         long_history.append({
             "role": role,
-            "content": f"Message {i+1}"
+            "content": f"This is message {i+1} with some additional text to increase token count"
         })
     
     user_message = "This is a test with long history"
     
-    # Call function with excessive history
-    response = generate_response(
-        user_info=mock_user,
-        history=long_history,
-        user_message=user_message,
-        products=mock_products,
-        faqs=mock_faqs,
-        rules=mock_rules
-    )
-    
-    # Verify response
-    assert response == "Processed truncated history"
-    mock_model.start_chat.assert_called_once()
-    mock_chat.send_message.assert_called_once_with(user_message)
+    # Mock the truncate_history_by_tokens function to verify it's called
+    truncated_history = long_history[-5:]  # Simulate keeping last 5 messages
+    with patch('app.llm_integration.truncate_history_by_tokens', 
+               return_value=(truncated_history, 1000)) as mock_truncate:
+        
+        # Call function with excessive history
+        response = generate_response(
+            user_info=mock_user,
+            history=long_history,
+            user_message=user_message,
+            products=mock_products,
+            faqs=mock_faqs,
+            rules=mock_rules
+        )
+        
+        # Verify response
+        assert response == "Processed truncated history"
+        
+        # Verify token-aware truncation was called
+        mock_truncate.assert_called_once()
+        
+        # Verify that the truncated history was used
+        assert len(mock_model.start_chat.call_args[1]['history']) > 2  # System prompt + model response + truncated history
+        
+        # Check that we sent the user message to the model
+        mock_chat.send_message.assert_called_once_with(user_message)
 
 def test_generate_response_api_exception(mock_model, mock_user, mock_products, mock_faqs, mock_rules):
     """Test handling of API exceptions"""
@@ -206,4 +218,84 @@ def test_generate_response_invalid_message_content(mock_model, mock_user, mock_p
     # Verify response is valid
     assert response == "Valid response"
     mock_model.start_chat.assert_called_once()
-    mock_chat.send_message.assert_called_once_with(user_message) 
+    mock_chat.send_message.assert_called_once_with(user_message)
+
+def test_generate_response_token_limit_tracking(mock_model, mock_user, mock_products, mock_faqs, mock_rules):
+    """Test that token usage is tracked and logged during response generation"""
+    mock_response = MagicMock()
+    mock_response.text = "This is a response"
+    mock_chat = MagicMock()
+    mock_chat.send_message.return_value = mock_response
+    mock_model.start_chat.return_value = mock_chat
+    
+    user_message = "Hello"
+    conversation_history = [
+        {"role": "user", "content": "Hi"},
+        {"role": "assistant", "content": "Hello!"}
+    ]
+    
+    # Mock count_tokens to return predictable values
+    with patch('app.llm_integration.count_tokens', return_value=10), \
+         patch('app.llm_integration.logger') as mock_logger:
+        
+        # Call function
+        response = generate_response(
+            user_info=mock_user,
+            history=conversation_history,
+            user_message=user_message,
+            products=mock_products,
+            faqs=mock_faqs,
+            rules=mock_rules
+        )
+        
+        # Verify token usage was logged - use a more flexible check
+        found = False
+        for call_args in mock_logger.info.call_args_list:
+            call_str = call_args[0][0] if call_args[0] else ""
+            if "Token usage:" in call_str and "User message: 10" in call_str:
+                found = True
+                break
+        
+        assert found, "Token usage logging not found in logger calls" 
+
+def test_generate_response_includes_product_context(mock_model, mock_user, mock_products, mock_faqs, mock_rules):
+    """Test that product information is properly included in the context sent to the LLM"""
+    mock_response = MagicMock()
+    mock_response.text = "Here are the products you can purchase"
+    mock_chat = MagicMock()
+    mock_chat.send_message.return_value = mock_response
+    mock_model.start_chat.return_value = mock_chat
+    
+    user_message = "What products can I purchase with $500?"
+    conversation_history = [
+        {"role": "user", "content": "Hi"},
+        {"role": "assistant", "content": "Hello!"}
+    ]
+    
+    # Call the function
+    response = generate_response(
+        user_info=mock_user,
+        history=conversation_history,
+        user_message=user_message,
+        products=mock_products,
+        faqs=mock_faqs,
+        rules=mock_rules
+    )
+    
+    # Verify the model was called with product information in the context
+    assert mock_model.start_chat.called
+    # Get the history that was passed to start_chat
+    history_arg = mock_model.start_chat.call_args[1]['history']
+    # The first message should contain product information
+    first_message = history_arg[0]['parts'][0]
+    
+    # Verify product info is in the first message
+    assert "Available Products:" in first_message
+    # Verify actual product names are included
+    for product in mock_products:
+        product_text = f"{product['name']}: {product['description']}"
+        assert product_text in first_message
+    
+    # Also verify price information is included
+    assert "$10.99" in first_message
+    assert "$20.99" in first_message 

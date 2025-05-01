@@ -9,4 +9,5 @@ httpx
 pytest-cov
 sqlalchemy>=2.0.0
 asyncpg
-greenlet 
+greenlet
+tiktoken 
