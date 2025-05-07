@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meet Capper - Your Carton Caps AI Assistant</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="/static/bot-icon.png" type="image/png">
+</head>
+<body>
+    <div class="doc-layout-pitch">
+        <main class="doc-content-pitch">
+            <div class="back-button-container pitch-back-button">
+                <a href="/" class="back-button">< Back to Live Demo</a>
+            </div>
+
+            <header class="pitch-header">
+                <img src="/static/bot-icon.png" alt="Capper Icon" class="pitch-header-icon">
+                <h1>Meet Capper – Your Carton Caps AI Assistant</h1>
+                <p class="subtitle">Improving Customer Engagement with Personalized AI</p>
+            </header>
+
+            <section>
+                <h2>Why This Matters Now More Than Ever</h2>
+                <p>Across the United States, public schools face staggering annual funding gaps that top $80 billion. This shortfall translates directly to fewer resources: canceled field trips, outdated textbooks, and diminished arts or STEM programs. These are precisely the experiences that spark curiosity and can change youth life trajectories.</p>
+                <p>Carton Caps offers a vital solution by turning everyday shopping into a steady revenue stream for classrooms. Capper, your new AI assistant, amplifies this impact by removing friction and making it easier than ever for customers to support schools through their purchases with margins much greater than traditional fundraising efforts.</p>
+                <p>Every interaction, every purchase facilitated by Capper, directs real dollars toward essential supplies. Together with Capper, we'll put pencils, meals, musical instruments, and more, into students' hands, helping to close critical opportunity gaps.</p>
+            </section>
+
+            <section>
+                <h2>Why Capper?</h2>
+                <p>Recent e-commerce research shows that <strong>LLM‑powered chat increases repeat engagement 18‑32%</strong> and drives <strong>up to 20% higher conversion</strong> when paired with personalised recommendations. By embedding Capper directly in the Carton Caps app we tap the same levers with speed, clarity and personalization. Our goal is to turn one‑time shoppers into loyal school supporters that revolutionize the way schools are supported.</p>
+
+                <p>Carton Caps has already proven successful at converting everyday purchases into meaningful support for schools. Capper enhances this mission by:</p>
+                <h3>Key Benefits of an AI Assistant</h3>
+                 <table>
+                     <thead>
+                         <tr>
+                             <th>Outcome</th>
+                             <th>Impact Benchmark*</th>
+                         </tr>
+                     </thead>
+                     <tbody>
+                         <tr>
+                             <td>Higher engagement</td>
+                             <td>+25% session length</td>
+                         </tr>
+                         <tr>
+                             <td>Simpler discovery</td>
+                             <td>2× faster product find time</td>
+                         </tr>
+                         <tr>
+                             <td>Lower support load</td>
+                             <td>40% FAQ deflection</td>
+                         </tr>
+                         <tr>
+                             <td>Happier customers</td>
+                             <td>+12 NPS</td>
+                         </tr>
+                     </tbody>
+                 </table>
+                 <p style="font-size: 0.8em; margin-top: 0.5em;"><em>*figures drawn from industry research.</em></p>
+            </section>
+
+            <section>
+                <h2>User Experience</h2>
+                <p>70% of Gen Z shoppers prefer chat over menus. Capper meets them where they are, allowing users to:</p>
+                 <ul>
+                    <li><strong>Ask</strong> questions in natural language about products (e.g., "What breakfast items do you have?") or the referral program (e.g., "How do I refer a friend?").</li>
+                    <li><strong>Receive</strong> relevant product suggestions or clear explanations of referral rules and FAQs based on the available knowledge base.</li>
+                    <li><strong>Get recommendations</strong> based on criteria like price (e.g., "I have $25 and I'm looking for a hearty meal, which product do you suggest I purchase?").</li>
+                    <li><strong>Explore</strong> product details and referral information through fluid, multi‑turn conversations.</li>
+                </ul>
+                <p>Capper uses the active customer profile and all of their connected persona data and conversation history to provide contextually relevant responses and recommendations.</p>
+            </section>
+
+            <section>
+                <h2>How It Works</h2>
+                <table>
+                     <thead>
+                         <tr>
+                             <th>Layer</th>
+                             <th>Purpose</th>
+                             <th>Research Insight</th>
+                         </tr>
+                     </thead>
+                     <tbody>
+                         <tr>
+                             <td><strong>AI Engine</strong></td>
+                             <td>Gemini 1.5 Flash</td>
+                             <td>Good latency/quality/cost trade‑off for production POCs.</td>
+                         </tr>
+                         <tr>
+                             <td><strong>Grounded Knowledge</strong></td>
+                             <td>Product, school & referral tables</td>
+                             <td>Retrieval‑Augmented Generation (RAG) cuts hallucinations by 70%.</td>
+                         </tr>
+                         <tr>
+                             <td><strong>Context Manager</strong></td>
+                             <td>PostgreSQL DB + Token-aware History Management with Smart Prioritization</td>
+                             <td>Intelligently manages conversation history to maximize context while optimizing token usage. Includes fallback strategies for token limits and automatic error handling.</td>
+                         </tr>
+                         <tr>
+                             <td><strong>REST API</strong></td>
+                             <td>FastAPI <code>/chat</code> endpoint</td>
+                             <td>Low‑overhead Python micro‑service that can be easily deployed to any web/mobile application.</td>
+                         </tr>
+                     </tbody>
+                 </table>
+            </section>
+
+            <section>
+                <h2>Easy Integration</h2>
+                <p>Adding Capper's capabilities to your existing Carton Caps app is straightforward:</p>
+                <ol>
+                    <li>Connect your app's current chat feature to the Capper service.</li>
+                    <li>When a user types a message, simply send it securely to Capper.</li>
+                    <li>Receive Capper's helpful response back instantly.</li>
+                    <li>Display Capper's reply seamlessly within your app's familiar chat window.</li>
+                    <li>Capper automatically remembers the flow of the conversation, enabling natural back-and-forth dialogue.</li>
+                </ol>
+                 <p>This approach ensures Capper can enhance your existing app without requiring significant changes to your user interface.</p>
+            </section>
+
+            <section>
+                <h2>Sample Roadmap</h2>
+                 <table>
+                     <thead>
+                         <tr>
+                             <th>Horizon</th>
+                             <th>Feature</th>
+                             <th>Scope Summary</th>
+                         </tr>
+                     </thead>
+                     <tbody>
+                         <tr>
+                             <td><strong>0‑3 mo</strong></td>
+                             <td>Vector search, Agnostic LLM provider support, Secure API authentication, Caching. Basic Front-end for referral program and FAQ maintenance.</td>
+                             <td>Prepare the RAG framework for production load, and add the ability to refer a friend. Support for multiple LLM providers. Redis Caching for performance and cost. Front-end for API interaction.</td>
+                         </tr>
+                         <tr>
+                             <td><strong>3‑6 mo</strong></td>
+                             <td>Purchase‑history personalization, proactive offers</td>
+                             <td>Leverage purchase history table and trends to provide proactive offers.</td>
+                         </tr>
+                         <tr>
+                             <td><strong>6-12 mo</strong></td>
+                             <td>In chat purchase, Improve visualization add images to product cards</td>
+                             <td>Enable purchase flow within chat, continue expansion of LLM interactions based on db schema improvements and customer feedback.</td>
+                         </tr>
+                     </tbody>
+                 </table>
+
+            <section>
+                <h2>Next‑Step Action Plan</h2>
+                <ol>
+                    <li><strong>Evaluate Current POC:</strong> Conduct basic internal user tests and initial performance benchmarks on the existing prototype.</li>
+                    <li><strong>Gather User Feedback:</strong> Run moderated customer testing sessions to assess usability, capture task-completion times, and measure sentiment.</li>
+                    <li><strong>Prioritize Roadmap & Design:</strong> Conduct a sprint planning session with Product and Engineering to refine and prioritize roadmap items (like in-chat referrals, vector search, personalization) based on POC findings and user feedback. Define clear success metrics for the next phase.</li>
+                    <li><strong>Production Readiness - Technology:</strong> Plan and implement core technical enhancements for scalability and reliability:
+                        <ul>
+                            <li>Replace basic knowledge retrieval with a Vector Database (RAG) implementation.</li>
+                            <li>Implement robust monitoring, expand logging, and introduce alerting. Enhance testing automation (pytest) suite.</li>
+                            <li>Finalize and implement agnostic LLM provider support strategy.</li>
+                            <li>Refine security measures and infrastructure for production deployment.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Production Readiness - Data:</strong> Prepare and enrich data sources: add product images, define contribution values per item, and generate necessary embeddings for vector search.</li>
+                    <li><strong>Production Readiness - Security:</strong> Add API key authentication and rate limiting/pagination of endpoints.</li>
+                    <li><strong>Develop Priority Feature(s):</strong> Begin development of the top-priority feature(s) identified in the design sprint.</li>
+                    <li><strong>MVP Go/No-Go Decision:</strong> Convene key stakeholders for a workshop to review findings, assess technical and data readiness, and make a final go/no-go decision for an MVP launch.</li>
+                </ol>
+            </section>
+
+            <section>
+                <h2>Suggested Short-Term Enhancements</h2>
+                <p>To further improve Capper's personalization and efficacy, the following enhancements are recommended based on initial analysis and common user needs:</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Enhancement</th>
+                            <th>Benefit / Why</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Expand FAQ knowledge to include customer details on the rebate program.</td>
+                            <td>Increases Capper's utility by covering more support topics, provide social proof of overall impact.</td>
+                        </tr>
+                        <tr>
+                            <td>Calculate and potentially display the specific contribution value of each product towards the school mission.</td>
+                            <td>Reinforces the core mission and provides transparency, potentially encouraging purchases.</td>
+                        </tr>
+                        <tr>
+                            <td>Implement LLM-supported referrals to allow users to complete the referral process within the chat conversation.</td>
+                            <td>Reduces friction in the referral process, potentially increasing successful referrals and user acquisition.</td>
+                        </tr>
+                        <tr>
+                            <td>Develop a customer recommendations table/logic based on purchase history or preferences.</td>
+                            <td>Enables more sophisticated and relevant product suggestions, improving personalization and potential AOV.</td>
+                        </tr>
+                         <tr>
+                             <td>Add product images to the database.</td>
+                             <td>Allows for richer visual presentation in chat responses (e.g., product cards), improving user experience and product appeal.</td>
+                         </tr>
+                        <tr>
+                            <td>Explore additional personalization vectors (e.g., user-stated preferences, past queries).</td>
+                            <td>Deepens understanding of user intent for even more tailored interactions and recommendations.</td>
+                        </tr>
+                        <tr>
+                            <td>Incorporate social proof elements, such as total funds raised by supported schools or specific projects funded.</td>
+                            <td>Builds community connection and demonstrates impact, potentially increasing user motivation and loyalty.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+            <footer>
+                <p style="text-align: center">
+                    For detailed API specifications, see:
+                    <a href="/docs" target="_blank">Swagger UI</a> |
+                    <a href="/redoc" target="_blank">ReDoc</a>
+                </p>
+            </footer>
+        </main>
+    </div>
+</body>
+</html> 
